@@ -24,11 +24,10 @@ class CaptureDirectoryTests(unittest.TestCase):
         identity = subprocess.run(["whoami", "/user", "/fo", "csv", "/nh"],
                                   capture_output=True, check=True)
         sid = next(csv.reader(io.StringIO(identity.stdout.decode("mbcs"))))[1]
-        with tempfile.TemporaryDirectory() as temporary:
-            saved_acl = Path(temporary) / "acl.txt"
-            subprocess.run(["icacls", str(path), "/save", str(saved_acl)],
-                           capture_output=True, check=True)
-            self.assertIn(sid, saved_acl.read_text(encoding="utf-16-le"))
+        # Let Windows resolve aliases such as LA (the runner's local admin).
+        acl = subprocess.run(["icacls", str(path), "/findsid", "*" + sid],
+                             capture_output=True, check=True)
+        self.assertIn(path.name.encode("ascii"), acl.stdout)
         (path / "frame.bmp").write_bytes(b"capture")
         directory.cleanup()
         self.assertFalse(path.exists())
