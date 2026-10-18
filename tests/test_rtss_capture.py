@@ -1,4 +1,6 @@
 import ctypes as ct
+import csv
+import io
 from pathlib import Path
 import struct
 import tempfile
@@ -17,10 +19,16 @@ class CaptureDirectoryTests(unittest.TestCase):
         directory = CaptureDirectory()
         self.addCleanup(directory.cleanup)
         path = Path(directory.name)
-        # Inherited ACEs allow the game token to write even when the counter
-        # creates this directory using an elevated token.
-        acl = subprocess.run(["icacls", str(path)], capture_output=True, check=True)
-        self.assertIn(b"(I)", acl.stdout)
+        # Check the user SID, not the (I) display marker: some Windows/Python
+        # versions materialize inherited permissions as explicit ACEs.
+        identity = subprocess.run(["whoami", "/user", "/fo", "csv", "/nh"],
+                                  capture_output=True, check=True)
+        sid = next(csv.reader(io.StringIO(identity.stdout.decode("mbcs"))))[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            saved_acl = Path(temporary) / "acl.txt"
+            subprocess.run(["icacls", str(path), "/save", str(saved_acl)],
+                           capture_output=True, check=True)
+            self.assertIn(sid, saved_acl.read_text(encoding="utf-16-le"))
         (path / "frame.bmp").write_bytes(b"capture")
         directory.cleanup()
         self.assertFalse(path.exists())
