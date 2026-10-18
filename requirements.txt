@@ -1,0 +1,7 @@
+dxcam>=0.3,<0.4
+atomics>=1.0.3,<2
+numpy>=2.3,<3
+opencv-python>=4.11,<5
+pystray>=0.19,<0.20
+Pillow>=11,<13
+psutil>=7,<8

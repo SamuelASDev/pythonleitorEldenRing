@@ -1,0 +1,8 @@
+venv_eldenring/
+.venv/
+__pycache__/
+*.pyc
+data/
+build/
+dist/
+*.lnk

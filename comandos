@@ -2,3 +2,9 @@ venv_eldenring\Scripts\activate
 
  python elden_ring_tracker.py   
  
+
+ python -m venv venv_eldenring
+
+venv_eldenring\Scripts\activate
+
+pip install mss opencv-python pytesseract

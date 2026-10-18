@@ -1,192 +1,122 @@
-import mss
-import cv2
-import numpy as np
+"""Entry point for the Entre Terras desktop counter."""
+import argparse
+import ctypes as ct
+from ctypes import wintypes as wt
+import hashlib
+from pathlib import Path
 import time
-import pytesseract
+import sys
+import subprocess
 import tkinter as tk
-from tkinter import font
+from tkinter import messagebox
 
-# --- Configurações do Tesseract (obrigatório se o Python não o encontrar automaticamente) ---
-# Caminho real para o seu tesseract.exe.
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Kept available here for existing integrations and tests.
+from vision import APP_DIR, BASE_DIR, DeathCounter, VisualDetector
+from tracker_state import StateStore, validate_settings
 
 
-# --- Configurações Essenciais ---
-# REGIÃO DE CAPTURA OTIMIZADA!
-monitor = {
-    "top": 500,
-    "left": 600,
-    "width": 720,
-    "height": 100
-}
-
-# Lista de textos que indicam morte.
-possible_death_texts = ["VOCE MORREU", "VOCÊ MORREU", "YOU DIED", "YOU DIED!"]
-
-# Cooldown para evitar múltiplas contagens da mesma tela de morte (em segundos)
-detection_cooldown = 1.5
-
-# --- Configurações da GUI (Tkinter) ---
-gui_location_x = 10
-gui_location_y = 10
-gui_font_family = "Helvetica"
-gui_font_size = 24
-gui_font_weight = "bold"
-gui_text_color = "red"
-gui_background_color = "black"
-
-# --- Inicialização da Captura de Tela ---
-sct = mss.mss()
-
-# --- Variáveis Globais para o Contador e Controle de Detecção ---
-death_count = 0
-is_death_screen_active = False
-last_detected_time = 0
-
-# --- Função de Detecção da Tela de Morte (VIA OCR com Seleção de Cor) ---
-def detect_death_screen_ocr(current_screen_bgr, target_texts_list):
-    # --- CORREÇÃO AQUI: Converta para escala de cinza PRIMEIRO ---
-    current_screen_gray = cv2.cvtColor(current_screen_bgr, cv2.COLOR_BGR2GRAY)
-    # --- FIM CORREÇÃO ---
-
-    # Converte a imagem BGR para HSV (originalmente estava convertendo aqui e não tinha current_screen_gray definida)
-    current_screen_hsv = cv2.cvtColor(current_screen_bgr, cv2.COLOR_BGR2HSV)
-
-    # --- Definir o intervalo de cor vermelha em HSV ---
-    lower_red1 = np.array([0, 100, 100])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 100, 100])
-    upper_red2 = np.array([179, 255, 255])
-
-    mask1 = cv2.inRange(current_screen_hsv, lower_red1, upper_red1)
-    mask2 = cv2.inRange(current_screen_hsv, lower_red2, upper_red2)
-    red_mask = mask1 + mask2
-
-    # Aplica a máscara para isolar os pixels vermelhos.
-    # img_for_ocr agora usa current_screen_gray que está definida.
-    img_for_ocr = cv2.bitwise_and(current_screen_gray, current_screen_gray, mask=red_mask)
-    
-    # Opcional: Para binarizar ainda mais a imagem para o Tesseract,
-    _, img_for_ocr = cv2.threshold(img_for_ocr, 30, 255, cv2.THRESH_BINARY)
-
+def main():
+    parser = argparse.ArgumentParser(description="Entre Terras - visual death counter")
+    parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--check", action="store_true", help="Test the selected capture backend")
+    parser.add_argument("--run-seconds", type=float)
+    parser.add_argument("--capture", choices=("rtss", "dxgi"))
+    parser.add_argument("--monitor", type=int)
+    parser.add_argument("--fps", type=int)
+    parser.add_argument("--threshold", type=float)
+    parser.add_argument("--reference", type=Path, default=BASE_DIR / "3.png")
+    parser.add_argument("--data-dir", type=Path, default=APP_DIR / "data")
+    parser.add_argument("--show", action="store_true", help="Abrir com o painel visível")
+    args = parser.parse_args()
+    if not args.check and not ct.windll.shell32.IsUserAnAdmin():
+        # RTSS requires elevation on this installation, including for shutdown.
+        parameters = sys.argv[1:] if getattr(sys, "frozen", False) else [str(Path(__file__).resolve()), *sys.argv[1:]]
+        shell = ct.WinDLL("shell32", use_last_error=True)
+        shell.ShellExecuteW.argtypes = [wt.HWND, wt.LPCWSTR, wt.LPCWSTR, wt.LPCWSTR, wt.LPCWSTR, ct.c_int]
+        shell.ShellExecuteW.restype = ct.c_ssize_t
+        result = shell.ShellExecuteW(None, "runas", sys.executable, subprocess.list2cmdline(parameters), str(APP_DIR), 0)
+        if result <= 32:
+            messagebox.showerror("Entre Terras", "A permissão de administrador é necessária para abrir e encerrar o RTSS junto com o contador.")
+            return 1
+        return 0
+    if sys.stdout is None or sys.stderr is None:
+        args.data_dir.mkdir(parents=True, exist_ok=True)
+        log = (args.data_dir / "app.log").open("a", encoding="utf-8", buffering=1)
+        sys.stdout = sys.stderr = log
+    store = StateStore(args.data_dir)
+    camera = None
+    mutex = None
+    kernel = None
+    root = None
+    rtss = None
+    app = None
     try:
-        text_extracted = pytesseract.image_to_string(img_for_ocr, lang='por+eng', config='--psm 6 --oem 3')
-        processed_extracted_text = text_extracted.strip().upper().replace('\n', ' ').replace(' ', '')
-        
-        for death_word_phrase in target_texts_list:
-            processed_target = death_word_phrase.strip().upper().replace(' ', '')
-            if processed_target in processed_extracted_text:
-                return True, text_extracted
+        if not args.check:
+            kernel = ct.WinDLL("kernel32", use_last_error=True)
+            kernel.CreateMutexW.argtypes = [ct.c_void_p, wt.BOOL, wt.LPCWSTR]
+            kernel.CreateMutexW.restype = wt.HANDLE
+            kernel.CloseHandle.argtypes = [wt.HANDLE]
+            name = "Local\\EntreTerras-" + hashlib.sha256(str(store.path.resolve()).casefold().encode()).hexdigest()[:20]
+            mutex = kernel.CreateMutexW(None, False, name)
+            if not mutex:
+                raise ct.WinError(ct.get_last_error())
+            if ct.get_last_error() == 183:
+                messagebox.showinfo("Entre Terras", "O contador já está aberto. Use o ícone Entre Terras na bandeja, perto do relógio, para abrir o painel.")
+                return 0
+        journey = store.load()
+        for key in ("capture", "monitor", "fps", "threshold"):
+            value = getattr(args, key)
+            if value is not None:
+                journey.settings[key] = value
+        journey.data["settings"] = validate_settings(journey.settings)
+        if args.check:
+            from tracker_runtime import create_capture, grab_frame
+            detector = VisualDetector(args.reference, journey.settings["threshold"])
+            camera = create_capture(journey.settings, start_rtss=True)
+            deadline = time.monotonic() + 8
+            frame = None
+            while frame is None and time.monotonic() < deadline:
+                frame = grab_frame(camera, journey.settings["capture"], fresh_only=False)
+                if frame is None:
+                    time.sleep(.2)
+            if frame is None:
+                raise RuntimeError(getattr(camera, "status", "No frame available"))
+            print(f"OK: {journey.settings['capture']} capture; {frame.shape[1]}x{frame.shape[0]}; score {detector.score(frame):.3f}")
+            return 0
+        from tracker_ui import ControlPanel
+        from desktop_integration import RTSSLifecycle
+        rtss = RTSSLifecycle()
+        rtss.start()
+        ct.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EntreTerras.DeathCounter.Desktop")
+        root = tk.Tk()
+        root.withdraw()
+        app = ControlPanel(root, journey, store, args.reference, args.debug)
+        if args.show:
+            app.show_window()
+        if args.run_seconds is not None:
+            root.after(max(1, round(args.run_seconds * 1000)), app.close)
+        root.mainloop()
+        return 0
+    except Exception as error:
+        print(f"Error: {error}")
+        if not args.check:
+            messagebox.showerror("Entre Terras", str(error), parent=root)
+        return 1
+    finally:
+        if app and not app.closed:
+            app.close()
+        if camera:
+            camera.release()
+        if rtss:
+            rtss.close()
+        if mutex:
+            kernel.CloseHandle(mutex)
+        if root:
+            try:
+                root.destroy()
+            except tk.TclError:
+                pass
 
-        return False, text_extracted
 
-    except pytesseract.TesseractNotFoundError:
-        print("Erro: Tesseract OCR não encontrado. Verifique se o caminho em pytesseract.pytesseract.tesseract_cmd está correto.")
-        return False, ""
-    except Exception as e:
-        print(f"Erro no OCR: {e}")
-        return False, ""
-
-# --- Funções para a GUI do Tkinter ---
-
-def on_key_press(event):
-    if event.char == 'q':
-        root.destroy()
-
-def update_counter_and_detect():
-    global death_count, is_death_screen_active, last_detected_time
-
-    sct_img = sct.grab(monitor)
-    img_np = np.array(sct_img)
-
-    if img_np.shape[2] == 4:
-        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGRA2BGR)
-
-    # --- DEBUG VISUAL: Mostra a imagem que está sendo capturada ---
-    cv2.imshow("Regiao de Captura (DEBUG)", img_np)
-    
-    # Descomente para ver a imagem APÓS o pré-processamento de cor para o OCR
-    # current_screen_hsv = cv2.cvtColor(img_np, cv2.COLOR_BGR2HSV)
-    # lower_red1 = np.array([0, 100, 100])
-    # upper_red1 = np.array([10, 255, 255])
-    # lower_red2 = np.array([170, 100, 100])
-    # upper_red2 = np.array([179, 255, 255])
-    # mask1 = cv2.inRange(current_screen_hsv, lower_red1, upper_red1)
-    # mask2 = cv2.inRange(current_screen_hsv, lower_red2, upper_red2)
-    # red_mask = mask1 + mask2
-    # processed_for_display = cv2.bitwise_and(cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY), cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY), mask=red_mask)
-    # _, processed_for_display = cv2.threshold(processed_for_display, 30, 255, cv2.THRESH_BINARY)
-    # cv2.imshow("Imagem para OCR apos cor (DEBUG)", processed_for_display)
-
-    cv2.waitKey(1)
-    # --- FIM DEBUG VISUAL ---
-
-    detected, ocr_text_raw = detect_death_screen_ocr(img_np, possible_death_texts)
-
-    current_time = time.time()
-    if detected and not is_death_screen_active and (current_time - last_detected_time > detection_cooldown):
-        death_count += 1
-        is_death_screen_active = True
-        last_detected_time = current_time
-        
-        print(f"!!! TELA DE MORTE DETECTADA VIA OCR !!! Mortes: {death_count} (Texto Lido: '{ocr_text_raw.strip()}')")
-        counter_label.config(text=f"Mortes: {death_count}")
-        
-    elif not detected and is_death_screen_active:
-        is_death_screen_active = False
-
-    root.after(33, update_counter_and_detect)
-
-
-# --- Configuração Principal do Tkinter ---
-root = tk.Tk()
-root.title("Elden Ring Death Counter")
-
-root.overrideredirect(True)
-root.wm_attributes("-topmost", True)
-root.wm_attributes("-alpha", 0.8)
-root.attributes("-transparentcolor", gui_background_color)
-root.geometry(f"+{gui_location_x}+{gui_location_y}")
-
-custom_font = font.Font(family=gui_font_family, size=gui_font_size, weight=gui_font_weight)
-
-counter_label = tk.Label(
-    root,
-    text=f"Mortes: {death_count}",
-    font=custom_font,
-    fg=gui_text_color,
-    bg=gui_background_color,
-    highlightthickness=0
-)
-counter_label.pack(padx=5, pady=5)
-
-button_font = font.Font(family=gui_font_family, size=10, weight="normal")
-
-exit_button = tk.Button(
-    root,
-    text="Sair",
-    command=root.destroy,
-    font=button_font,
-    fg="white",
-    bg="darkgray",
-    relief="flat"
-)
-exit_button.pack(pady=2, padx=5)
-
-root.bind('<Key>', on_key_press)
-
-print(f"Monitorando a região OTIMIZADA: {monitor['left']},{monitor['top']} até {monitor['left']+monitor['width']},{monitor['top']+monitor['height']}")
-print(f"Pressione 'q' (com o foco na janela do contador) ou clique em 'Sair' para encerrar. Monitorando a tela para os textos de morte...")
-
-root.after(100, update_counter_and_detect)
-
-try:
-    root.mainloop()
-except Exception as e:
-    print(f"Ocorreu um erro: {e}")
-    import traceback
-    traceback.print_exc()
-finally:
-    cv2.destroyAllWindows()
-    print("Programa finalizado.")
-    print(f"Total de mortes detectadas: {death_count}")
+if __name__ == "__main__":
+    raise SystemExit(main())
