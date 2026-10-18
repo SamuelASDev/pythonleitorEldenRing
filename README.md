@@ -1,73 +1,157 @@
-# Entre Terras — contador de mortes do Elden Ring
+# Entre Terras
 
-No Windows, dê dois cliques em **iniciar.bat**. O inicializador cria o ambiente virtual e instala dependências que estiverem faltando. Depois inicia o RTSS e coloca o contador na bandeja do Windows, sem manter uma janela de terminal. O Windows solicita permiss?o de administrador para gerenciar o RTSS. Requer Python; não precisa de Tesseract.
+<img src="entre_terras/assets/entre-terras.png" alt="Ícone Entre Terras" width="96">
 
-## Painel de controle
+Contador visual de mortes para **Elden Ring no Windows**, com histórico de chefes, atalhos globais e contador sobreposto no jogo pelo RivaTuner Statistics Server (RTSS).
 
-- **Jornada:** contador geral independente; botões para aumentar, diminuir, zerar ou definir um valor. Inicie uma sessão pelo nome do chefe e marque **Chefe vencido • salvar** ao terminar, ou arquive sem vitória.
-- **Chefes e histórico:** registros com mortes, datas e resultado. Edite nomes e contagens, fixe até 6 registros no jogo e exporte o histórico em CSV.
-- **Texto no jogo:** personalize o texto com prévia. O geral sempre aparece primeiro; chefe ativo e chefes fixados vêm abaixo. Exemplos: `Jornada = {total}` e `{nome} = {mortes}`. Um nome literal, como `Margit = {mortes}`, também funciona.
-- **Atalhos e detecção:** configure atalhos globais, frequência, sensibilidade e confirmação da mensagem. Deixe um atalho vazio para desativá-lo. Se a combinação já estiver em uso, o programa avisa e mantém as configurações anteriores.
+O reconhecimento compara a mensagem vermelha de morte com uma imagem de referência. Não utiliza OCR, Tesseract ou um modelo de IA treinado.
 
-Uma morte detectada aumenta o geral e o chefe ativo. Edições manuais alteram **somente o contador selecionado**. Encerrar um chefe não zera nem corrige o geral. O total geral não é recalculado como a soma do histórico.
+## Recursos
 
-**Pausar detecção** suspende novas capturas, o reconhecimento e os incrementos automáticos; as correções manuais continuam disponíveis. A vitória é marcada manualmente pelo botão ou atalho; esta versão não reconhece a derrota do chefe automaticamente.
+- Contador geral e sessões independentes por chefe.
+- Histórico com datas, resultado, edição e exportação CSV.
+- Até seis chefes do histórico fixados no contador do jogo.
+- Texto personalizável com prévia.
+- Atalhos globais configuráveis, sem hook de teclado.
+- Ícone na bandeja e execução em segundo plano.
+- Inicialização do RTSS antes do contador e encerramento conjunto.
+- Salvamento automático com backup e recuperação.
 
-Minimize pelo botão ou pela barra do Windows: captura, OSD e atalhos continuam ativos. Fechar a janela ou clicar em **Encerrar** salva os dados, desregistra os atalhos e remove o texto do jogo. A janela pode ser restaurada pela barra de tarefas. Apenas uma instância por pasta de dados pode ser aberta.
+## Requisitos
 
-## Atalhos iniciais
+- Windows 10 ou 11 de 64 bits.
+- RTSS instalado, normalmente junto com o MSI Afterburner.
+- Python 3.11 ou superior para executar o código ou gerar o executável.
+
+O executável não requer Python instalado. O Windows solicita permissão de administrador para iniciar e encerrar o RTSS. Abra o contador antes do jogo para permitir que o RTSS detecte o processo.
+
+## Como executar
+
+### Executável
+
+Depois de gerar o aplicativo, abra `dist/EntreTerras/EntreTerras.exe`. Mantenha a pasta `_internal` junto dele. Os dados ficam em `data/` ao lado do executável.
+
+Na pasta do projeto, `iniciar.bat` usa o executável existente quando disponível e mantém os dados em `data/` na raiz. O atalho local **Entre Terras**, quando presente, também usa esse histórico.
+
+### Código-fonte
+
+Dê dois cliques em `iniciar.bat`. Sem executável, ele cria o ambiente virtual e instala as dependências ausentes. Para configurar manualmente no PowerShell:
+
+```powershell
+python -m venv venv_eldenring
+.\venv_eldenring\Scripts\python.exe -m pip install -r requirements.txt
+.\venv_eldenring\Scripts\python.exe -m entre_terras
+```
+
+Esse comando usa `data/` na raiz do checkout. Para escolher outra pasta, passe `--data-dir caminho`.
+
+## Bandeja e encerramento
+
+O aplicativo começa na bandeja, nos ícones perto do relógio. O Windows pode colocá-lo dentro da setinha de ícones ocultos.
+
+- **Duplo clique** ou **Abrir painel** mostra a janela.
+- **Minimizar** ou **X** esconde a janela, mantendo o contador ativo.
+- **Pausar / retomar detecção** suspende ou retoma captura e reconhecimento.
+- **Encerrar contador e RTSS** salva os dados, remove o texto do jogo e fecha os dois.
+
+O botão **Encerrar** do painel também fecha o RTSS, inclusive se ele já estava aberto antes do contador. Apenas uma instância pode usar a mesma pasta de dados. Use `--show` para iniciar com o painel visível.
+
+## Contagens e chefes
+
+Uma morte detectada aumenta o total geral e o chefe ativo. Correções manuais alteram somente o contador selecionado. Encerrar uma sessão não recalcula o total geral.
+
+Inicie uma sessão pelo nome do chefe e finalize com **Chefe vencido • salvar** ou **Arquivar sem vitória**. A vitória é informada manualmente; não há reconhecimento automático da derrota do chefe.
+
+Em **Texto no jogo**, personalize as linhas com `{total}`, `{nome}` e `{mortes}`:
+
+```text
+Jornada = {total}
+{nome} = {mortes}
+```
+
+## Atalhos padrão
 
 | Ação | Atalho |
 | --- | --- |
-| Geral: +1 / −1 / zerar | Ctrl+Alt+PageUp / PageDown / Home |
-| Chefe ativo: +1 / −1 / zerar | Ctrl+Shift+PageUp / PageDown / Home |
-| Pausar / retomar detecção | Ctrl+Alt+P |
-| Chefe vencido: salvar e encerrar sessão | Ctrl+Alt+End |
+| Geral: aumentar / diminuir / zerar | Ctrl+Alt+PageUp / PageDown / Home |
+| Chefe: aumentar / diminuir / zerar | Ctrl+Shift+PageUp / PageDown / Home |
+| Pausar / retomar | Ctrl+Alt+P |
+| Chefe vencido | Ctrl+Alt+End |
 
-Os atalhos funcionam com o jogo em foco, via `RegisterHotKey` do Windows, sem hook de teclado. Os atalhos de zerar e encerrar chefe executam imediatamente. Atalhos globais são ignorados enquanto há um diálogo de edição aberto no painel.
+Configure os atalhos no painel; deixe um campo vazio para desativá-lo. Zerar e encerrar chefe pelos atalhos executam imediatamente. Atalhos são ignorados durante diálogos de edição.
 
-## Dados salvos
+## Captura e desempenho
 
-Contagens, chefe ativo, histórico, configurações e atalhos ficam em `data/state.json`. O salvamento é automático a cada mudança, com substituição do arquivo e backup da versão anterior em `state.json.bak`. Ao reiniciar, a jornada e a sessão ativa são restauradas. O botão **Abrir pasta dos dados** facilita fazer uma cópia manual. No modo sem terminal, erros são registrados em `data/app.log`.
+O backend padrão solicita screenshots BMP pelo protocolo de memória compartilhada do RTSS. As imagens temporárias são lidas, recortadas e descartadas. Não há gravação de vídeo.
 
-Se uma versão antiga ainda estiver aberta, encerre-a antes de iniciar o novo painel. Valores de versões anteriores, que existiam apenas na memória, precisam ser informados pelo botão **Editar** na primeira execução.
+O padrão é **duas consultas por segundo**. Depois de confirmar uma morte, cai para uma consulta por segundo até a mensagem desaparecer. O reconhecimento trabalha em imagens reduzidas para 320 pixels de largura e usa uma thread do OpenCV. Pausar suspende novas capturas; uma captura já solicitada ainda pode terminar.
 
-## Captura e reconhecimento
+Duas imagens positivas confirmam uma morte. São necessários dois segundos sem a mensagem para rearmar o contador. A frequência pode ser ajustada entre 1 e 15. O impacto depende da resolução, do hardware e do RTSS; não há garantia de ausência de travadas.
 
-O programa compara o formato das letras vermelhas com a imagem `3.png`, em vários tamanhos, sem OCR ou modelo de IA treinado. Consulta a captura 2 vezes por segundo por padrão; a frequência efetiva depende do RTSS e do jogo. Confirma a mensagem em dois quadros e exige 2 segundos sem ela para permitir outra contagem.
+O backend alternativo `dxgi` evita arquivos BMP temporários, mas pode falhar em tela cheia exclusiva. Nesta versão, o texto no jogo está vinculado ao backend RTSS.
 
-A captura padrão usa o **RivaTuner Statistics Server (RTSS)** instalado com o MSI Afterburner. O programa solicita screenshots pelo protocolo oficial do SDK do RTSS (`RTSSSharedMemoryV2`, campos `dwScreenCaptureFlags` e `szScreenCapturePath`). Isso permite receber imagens pelo hook de renderização do RTSS, inclusive quando a captura externa DXGI falha em tela cheia exclusiva. Screenshots BMP são criadas em uma pasta temporária, lidas e substituídas; a pasta é removida ao encerrar. Não é gravado vídeo. Essa alternativa envolve mais transferência de imagem e escrita temporária que a captura DXGI.
+A referência incluída reconhece a mensagem em português. Outro idioma exige uma referência recortada da mensagem vermelha. Precisão em partidas, HDR e diferentes configurações de vídeo precisam ser validados no jogo.
 
-Abra o RTSS antes de iniciar o jogo. Caso o jogo já estivesse aberto e o contador mostre “Aguardando jogo no RTSS”, reinicie o jogo com o RTSS aberto. O perfil do Elden Ring no RTSS precisa permitir a detecção do aplicativo. Se o RTSS exigir elevação, abra-o normalmente pelo menu Iniciar; o contador usa a memória compartilhada dele.
-
-No modo RTSS, o contador aparece também no **OSD do próprio RTSS**, sobre a imagem do jogo, inclusive em tela cheia exclusiva. A janela do Windows serve como controle e pode ser minimizada pelo botão “Minimizar”; o contador continua funcionando. O RTSS precisa estar com a exibição do OSD ativada. A integração preserva o espaço usado pelo Afterburner e remove seu próprio texto ao encerrar normalmente.
-
-O texto “Monitorando” indica imagens recentes. “Sem imagem do jogo” indica uma interrupção da captura; “Aguardando imagem do jogo” aparece antes do primeiro quadro. Você pode ocultar os avisos no OSD em **Texto no jogo**. A captura real e o OSD sobre o Elden Ring foram verificados; precisão na tela de morte e comportamento com HDR ainda dependem de validação durante uma partida.
-
-O código Python acessa apenas a memória compartilhada do RTSS e as imagens temporárias; não abre a memória do jogo nem altera seus arquivos. O RTSS, por sua vez, usa seu próprio hook no processo do jogo, como no Afterburner. Isso não representa garantia de aceitação por anticheat.
-
-Pelo PowerShell:
+## Diagnóstico
 
 ```powershell
-.\iniciar.bat
+.\iniciar.bat --show
 .\iniciar.bat --check
 .\iniciar.bat --debug
-.\iniciar.bat --capture dxgi
-.\iniciar.bat --monitor 1
-.\iniciar.bat --fps 3
+.\iniciar.bat --fps 2
 .\iniciar.bat --threshold 0.75
+.\iniciar.bat --capture dxgi --monitor 0
+.\iniciar.bat --reference caminho\mensagem.png
+.\iniciar.bat --data-dir caminho\dados
 ```
 
-`--check` tenta receber um quadro do jogo pelo RTSS em até 8 segundos. `--debug` mostra a área analisada e a pontuação de semelhança. `--capture dxgi` seleciona a captura externa anterior; só nesse modo `--monitor` seleciona a saída de vídeo, começando em 0. `--fps` aceita de 1 a 15, com padrão 2. `--threshold` define a semelhança mínima (padrão 0.70): aumentar reduz falsos positivos, mas pode perder detecções.
+`--check` tenta receber uma imagem por até oito segundos, sem alterar os dados; abra o RTSS antes desse diagnóstico. `--debug` mostra a região analisada. `--monitor` só se aplica ao DXGI e começa em zero. Aumentar `--threshold` reduz falsos positivos, mas pode perder detecções.
 
-A referência incluída reconhece a mensagem em português. Para outro idioma ou aparência, use `--reference caminho.png` com uma imagem recortada da mensagem vermelha. A detecção pode precisar de ajustes em cenários reais; os testes com imagens não garantem precisão durante uma partida.
+Os argumentos substituem os valores carregados e, na execução normal, podem ser persistidos pelo salvamento automático.
 
-Os argumentos da linha de comando substituem a configuração carregada. `--data-dir caminho` permite usar outra pasta de dados. `--check` não altera os dados. A maior parte dos ajustes também está disponível no painel.
+Se aparecer **Aguardando jogo no RTSS**, confira o perfil do jogo e reinicie o Elden Ring com o RTSS aberto. O OSD deve estar ativado no RTSS.
 
-Testes: `venv_eldenring\Scripts\python.exe -m unittest discover -s tests -v`.
+## Dados e privacidade
 
-Após contar uma morte, a frequência cai para uma consulta por segundo até a mensagem desaparecer. O reconhecimento trabalha em uma imagem reduzida de 320 pixels de largura e usa uma thread do OpenCV. No RTSS, screenshots temporárias continuam sendo necessárias; a otimização reduz sua frequência, sem prometer ausência de impacto no jogo.
+| Arquivo | Conteúdo |
+| --- | --- |
+| `data/state.json` | Contagens, sessões, configurações e atalhos |
+| `data/state.json.bak` | Versão anterior válida |
+| `data/app.log` | Erros quando executado sem terminal |
 
-## Execut?vel e ?cone
+Use **Abrir pasta dos dados** para localizar seu histórico e fazer uma cópia. Arquivos pessoais, ambientes virtuais e builds são ignorados pelo Git.
 
-O execut?vel fica em `dist/EntreTerras/EntreTerras.exe`; mantenha a pasta `_internal` junto dele. N?o requer Python instalado, mas requer RTSS instalado. O atalho **Entre Terras** na pasta do projeto usa os dados existentes em `data/`. Abrir o execut?vel diretamente usa `data/` ao lado dele. Para gerar novamente ap?s mudar o c?digo, execute `gerar_executavel.bat`. O execut?vel solicita eleva??o do Windows para poder iniciar e encerrar o RTSS.
+O código acessa a memória compartilhada do RTSS e imagens capturadas; não abre a memória do jogo nem modifica seus arquivos. O RTSS usa seu próprio hook de renderização. Isso não garante aceitação por sistemas anticheat.
+
+## Desenvolvimento
+
+```powershell
+.\venv_eldenring\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\venv_eldenring\Scripts\python.exe -m unittest discover -s tests -v
+.\gerar_executavel.bat
+```
+
+O build é definido em `EntreTerras.spec`. Os testes de interface simulam os serviços de captura e atalhos; a suíte não substitui validação durante uma partida. O GitHub Actions executa os testes no Windows.
+
+```text
+entre_terras/
+  app.py                  Entrada e inicialização
+  desktop_integration.py  Bandeja e ciclo de vida do RTSS
+  global_hotkeys.py       Atalhos globais
+  rtss_capture.py         Captura e OSD
+  tracker_runtime.py      Worker de captura e detecção
+  tracker_state.py        Contagens e persistência
+  tracker_ui.py           Painel Tkinter
+  vision.py               Reconhecimento visual
+  assets/                 Ícones e referência da mensagem
+tests/                    Testes automatizados
+.github/workflows/        Integração contínua
+EntreTerras.spec           Empacotamento Windows
+elden_ring_tracker.py      Inicializador de compatibilidade
+iniciar.bat               Inicialização local
+gerar_executavel.bat       Geração do executável
+```
+
+## Licença
+
+O código deste projeto é distribuído sob a [licença MIT](LICENSE). Elden Ring e RivaTuner Statistics Server pertencem aos respectivos titulares; a licença do projeto não concede direitos sobre conteúdo de terceiros. Este é um projeto independente, sem afiliação oficial.

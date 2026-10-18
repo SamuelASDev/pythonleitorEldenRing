@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 BASE_DIR = Path(__file__).resolve().parent
-APP_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else BASE_DIR
+APP_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else BASE_DIR.parent
 
 
 def red_mask(image):

@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from global_hotkeys import parse_hotkey, validate_hotkeys
-from tracker_state import Journey, StateStore, DEFAULTS, validate_template
+from entre_terras.global_hotkeys import parse_hotkey, validate_hotkeys
+from entre_terras.tracker_state import Journey, StateStore, DEFAULTS, validate_template
 
 
 class JourneyTests(unittest.TestCase):

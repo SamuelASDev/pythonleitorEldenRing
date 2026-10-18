@@ -1,17 +1,17 @@
-﻿import ctypes as ct
+import ctypes as ct
 from pathlib import Path
 import queue
 import unittest
 from unittest.mock import Mock, patch
-from desktop_integration import RTSSLifecycle, TrayIcon
+from entre_terras.desktop_integration import RTSSLifecycle, TrayIcon
 
 
 class DesktopTests(unittest.TestCase):
-    @patch('desktop_integration.ct.WinDLL')
-    @patch('desktop_integration.psutil.Process')
-    @patch('desktop_integration.subprocess.Popen')
-    @patch('desktop_integration.psutil.process_iter', return_value=[])
-    @patch('desktop_integration.find_rtss', return_value=Path('C:/RTSS/RTSS.exe'))
+    @patch('entre_terras.desktop_integration.ct.WinDLL')
+    @patch('entre_terras.desktop_integration.psutil.Process')
+    @patch('entre_terras.desktop_integration.subprocess.Popen')
+    @patch('entre_terras.desktop_integration.psutil.process_iter', return_value=[])
+    @patch('entre_terras.desktop_integration.find_rtss', return_value=Path('C:/RTSS/RTSS.exe'))
     def test_launches_hidden_and_waits_for_shared_memory(self, find, processes, launch, process, dll):
         dll.return_value.OpenFileMappingW.return_value = 123
         lifecycle = RTSSLifecycle()
@@ -20,7 +20,7 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(launch.call_args.kwargs['startupinfo'].wShowWindow, 0)
         dll.return_value.CloseHandle.assert_called_once_with(123)
 
-    @patch('desktop_integration.ct.WinDLL')
+    @patch('entre_terras.desktop_integration.ct.WinDLL')
     def test_close_requests_exit_and_falls_back_if_rtss_does_not_exit(self, dll):
         import psutil
         lifecycle = RTSSLifecycle()
@@ -32,7 +32,7 @@ class DesktopTests(unittest.TestCase):
         process.terminate.assert_called_once()
         self.assertEqual(lifecycle.processes, [])
 
-    @patch('desktop_integration.pystray.Icon')
+    @patch('entre_terras.desktop_integration.pystray.Icon')
     def test_tray_callbacks_queue_ui_actions(self, icon):
         events = queue.Queue()
         tray = TrayIcon(events)

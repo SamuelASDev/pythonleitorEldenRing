@@ -11,7 +11,7 @@ if not exist "venv_eldenring\Scripts\python.exe" (
 )
 venv_eldenring\Scripts\python.exe -c "import dxcam, cv2, numpy, atomics, pystray, PIL, psutil" >nul 2>&1
 if errorlevel 1 (
-    venv_eldenring\Scripts\python.exe -m pip install --upgrade --force-reinstall -r requirements.txt
+    venv_eldenring\Scripts\python.exe -m pip install -r requirements.txt
     if errorlevel 1 goto erro
 )
 if "%~1"=="" (

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('3.png', '.'), ('assets', 'assets')]
+datas = [('entre_terras/assets', 'entre_terras/assets'), ('LICENSE', '.')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('atomics')
@@ -42,7 +42,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets/entre-terras.ico'],
+    icon=['entre_terras/assets/entre-terras.ico'],
 )
 coll = COLLECT(
     exe,

@@ -4,17 +4,17 @@ import tkinter as tk
 from unittest.mock import patch
 import unittest
 
-from tracker_state import Journey, StateStore
-from tracker_ui import ControlPanel
-from vision import BASE_DIR
+from entre_terras.tracker_state import Journey, StateStore
+from entre_terras.tracker_ui import ControlPanel
+from entre_terras.vision import BASE_DIR
 
 
 class PanelFlowTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
-        self.worker_patch = patch("tracker_ui.CaptureWorker")
-        self.hotkeys_patch = patch("tracker_ui.GlobalHotkeys")
+        self.worker_patch = patch("entre_terras.tracker_ui.CaptureWorker")
+        self.hotkeys_patch = patch("entre_terras.tracker_ui.GlobalHotkeys")
         self.worker_patch.start()
         self.hotkeys_patch.start()
         self.addCleanup(self.worker_patch.stop)
@@ -22,7 +22,7 @@ class PanelFlowTests(unittest.TestCase):
         self.root = tk.Tk()
         self.root.withdraw()
         self.store = StateStore(self.folder.name)
-        self.app = ControlPanel(self.root, Journey(), self.store, BASE_DIR / "3.png", enable_tray=False)
+        self.app = ControlPanel(self.root, Journey(), self.store, BASE_DIR / "assets/death-message.png", enable_tray=False)
         self.addCleanup(self.app.close)
 
     def test_full_boss_flow_with_independent_actions_and_restart(self):

@@ -11,7 +11,7 @@ import psutil
 from PIL import Image
 import pystray
 
-from vision import BASE_DIR
+from entre_terras.vision import BASE_DIR
 
 
 def find_rtss():

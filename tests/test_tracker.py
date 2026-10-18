@@ -3,14 +3,14 @@ import unittest
 import cv2
 import numpy as np
 
-from elden_ring_tracker import BASE_DIR, DeathCounter, VisualDetector
+from entre_terras.app import BASE_DIR, DeathCounter, VisualDetector
 
 
 class VisualDetectionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.detector = VisualDetector(BASE_DIR / "3.png")
-        cls.reference = cv2.imdecode(np.fromfile(BASE_DIR / "3.png", dtype=np.uint8), cv2.IMREAD_COLOR)
+        cls.detector = VisualDetector(BASE_DIR / "assets/death-message.png")
+        cls.reference = cv2.imdecode(np.fromfile(BASE_DIR / "assets/death-message.png", dtype=np.uint8), cv2.IMREAD_COLOR)
 
     def test_message_at_different_sizes_and_brightness(self):
         for scale in (0.65, 1.0, 1.5, 2.0):

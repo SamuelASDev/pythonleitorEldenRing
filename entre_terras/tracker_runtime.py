@@ -6,12 +6,12 @@ import time
 
 import cv2
 
-from vision import DeathCounter, VisualDetector
+from entre_terras.vision import DeathCounter, VisualDetector
 
 
 def create_capture(settings, start_rtss=False):
     if settings["capture"] == "rtss":
-        from rtss_capture import RTSSCapture
+        from entre_terras.rtss_capture import RTSSCapture
         try:
             return RTSSCapture()
         except RuntimeError:

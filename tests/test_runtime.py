@@ -1,17 +1,17 @@
-﻿import queue
+import queue
 import threading
 import unittest
 from copy import deepcopy
 from unittest.mock import Mock, patch
-from tracker_runtime import CaptureWorker
-from tracker_state import DEFAULTS
+from entre_terras.tracker_runtime import CaptureWorker
+from entre_terras.tracker_state import DEFAULTS
 
 
 class WorkerTests(unittest.TestCase):
     def run_worker(self, paused=False, osd_error=False):
         worker = CaptureWorker.__new__(CaptureWorker)
         worker.events = queue.Queue()
-        worker.reference = '3.png'
+        worker.reference = 'entre_terras/assets/death-message.png'
         worker.lock = threading.Lock()
         worker.settings = deepcopy(DEFAULTS)
         worker.paused = paused
@@ -23,7 +23,7 @@ class WorkerTests(unittest.TestCase):
         camera.grab.return_value = None
         if osd_error:
             camera.update_osd.side_effect = RuntimeError('OSD indisponivel')
-        with patch('tracker_runtime.create_capture', return_value=camera):
+        with patch('entre_terras.tracker_runtime.create_capture', return_value=camera):
             worker._run()
         return worker, camera
 

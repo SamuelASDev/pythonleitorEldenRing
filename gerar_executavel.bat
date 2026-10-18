@@ -1,7 +1,11 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-venv_eldenring\Scripts\python.exe -m pip install "pyinstaller>=6,<7"
+if not exist "venv_eldenring\Scripts\python.exe" (
+    python -m venv venv_eldenring
+    if errorlevel 1 exit /b 1
+)
+venv_eldenring\Scripts\python.exe -m pip install -r requirements-dev.txt
 if errorlevel 1 exit /b 1
 venv_eldenring\Scripts\python.exe -m PyInstaller --noconfirm EntreTerras.spec
 if errorlevel 1 exit /b 1

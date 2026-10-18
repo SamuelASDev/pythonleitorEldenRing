@@ -8,7 +8,7 @@ import unittest
 import cv2
 import numpy as np
 
-from rtss_capture import AppEntry, RTSSCapture
+from entre_terras.rtss_capture import AppEntry, RTSSCapture
 
 
 class RTSSProtocolTests(unittest.TestCase):

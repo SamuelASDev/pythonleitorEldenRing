@@ -4,7 +4,7 @@ from ctypes import wintypes as wt
 import queue
 import threading
 
-from tracker_state import HOTKEY_LABELS
+from entre_terras.tracker_state import HOTKEY_LABELS
 
 MODIFIERS = {"CTRL": 2, "ALT": 1, "SHIFT": 4, "WIN": 8}
 NAMED_KEYS = {"PAGEUP": 0x21, "PAGEDOWN": 0x22, "HOME": 0x24, "END": 0x23,

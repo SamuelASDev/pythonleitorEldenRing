@@ -7,10 +7,10 @@ import queue
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog, filedialog
 
-from global_hotkeys import GlobalHotkeys, validate_hotkeys
-from tracker_runtime import CaptureWorker
-from tracker_state import DEFAULTS, HOTKEY_LABELS, validate_settings
-from vision import BASE_DIR
+from entre_terras.global_hotkeys import GlobalHotkeys, validate_hotkeys
+from entre_terras.tracker_runtime import CaptureWorker
+from entre_terras.tracker_state import DEFAULTS, HOTKEY_LABELS, validate_settings
+from entre_terras.vision import BASE_DIR
 
 BG = "#10151d"
 SURFACE = "#18212d"
@@ -72,7 +72,7 @@ class ControlPanel:
         self._loading_form = False
         self.refresh()
         if enable_tray:
-            from desktop_integration import TrayIcon
+            from entre_terras.desktop_integration import TrayIcon
             self.tray = TrayIcon(self.events)
         self.root.after(80, self.poll)
         if store.warning:
@@ -283,7 +283,7 @@ class ControlPanel:
             settings = validate_settings(settings)
             data = deepcopy(self.journey.data)
             data["settings"] = settings
-            from tracker_state import Journey
+            from entre_terras.tracker_state import Journey
             preview = Journey(data)
             if not preview.active and not any(s["pinned"] for s in data["sessions"]):
                 sample = preview.start("Margit")

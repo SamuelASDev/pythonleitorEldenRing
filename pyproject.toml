@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "entre-terras"
+version = "1.0.0"
+description = "Contador visual de mortes para Elden Ring no Windows"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "SamuelASDev"}]
+dynamic = ["dependencies"]
+
+[project.urls]
+Repository = "https://github.com/SamuelASDev/pythonleitorEldenRing"
+Issues = "https://github.com/SamuelASDev/pythonleitorEldenRing/issues"
+
+[project.scripts]
+entre-terras = "entre_terras.app:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["entre_terras*"]
+
+[tool.setuptools.package-data]
+entre_terras = ["assets/*.png", "assets/*.ico"]
