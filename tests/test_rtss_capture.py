@@ -4,11 +4,26 @@ import struct
 import tempfile
 import time
 import unittest
+import subprocess
 
 import cv2
 import numpy as np
 
-from entre_terras.rtss_capture import AppEntry, RTSSCapture
+from entre_terras.rtss_capture import AppEntry, CaptureDirectory, RTSSCapture
+
+
+class CaptureDirectoryTests(unittest.TestCase):
+    def test_capture_directory_inherits_permissions_and_is_cleaned(self):
+        directory = CaptureDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name)
+        # Inherited ACEs allow the game token to write even when the counter
+        # creates this directory using an elevated token.
+        acl = subprocess.run(["icacls", str(path)], capture_output=True, check=True)
+        self.assertIn(b"(I)", acl.stdout)
+        (path / "frame.bmp").write_bytes(b"capture")
+        directory.cleanup()
+        self.assertFalse(path.exists())
 
 
 class RTSSProtocolTests(unittest.TestCase):

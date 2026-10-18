@@ -10,11 +10,31 @@ import struct
 import tempfile
 import time
 import os
+import shutil
+import uuid
 
 import atomics
 
 import cv2
 import numpy as np
+
+
+class CaptureDirectory:
+    """Inherit the user's TEMP permissions so the unelevated renderer can write.
+
+    Python's TemporaryDirectory uses mode 0700. On Windows, when created by
+    our elevated process, that can exclude the game's normal user token.
+    """
+    def __init__(self):
+        path = Path(tempfile.gettempdir()) / f"elden_rtss_{uuid.uuid4().hex}"
+        path.mkdir(mode=0o777)
+        self.name = str(path)
+
+    def cleanup(self):
+        try:
+            shutil.rmtree(self.name)
+        except FileNotFoundError:
+            pass
 
 
 class AppEntry(ct.Structure):
@@ -43,7 +63,7 @@ class RTSSCapture:
         self.pending = None
         self.osd_owner = f"EldenDeathCounter-{os.getpid()}".encode("ascii")
         self.width = self.height = 0
-        self.directory = tempfile.TemporaryDirectory(prefix="elden_rtss_")
+        self.directory = CaptureDirectory()
         self.path = Path(self.directory.name) / "frame.bmp"
         self.path_bytes = str(self.path).encode("mbcs", errors="strict")
         if len(self.path_bytes) >= 260:
