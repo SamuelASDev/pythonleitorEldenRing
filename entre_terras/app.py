@@ -13,6 +13,7 @@ from tkinter import messagebox
 # Kept available here for existing integrations and tests.
 from entre_terras.vision import APP_DIR, BASE_DIR, DeathCounter, VisualDetector
 from entre_terras.tracker_state import StateStore, validate_settings
+from entre_terras.user_data import default_data_dir, migrate_legacy_data
 
 
 def main():
@@ -25,12 +26,16 @@ def main():
     parser.add_argument("--fps", type=int)
     parser.add_argument("--threshold", type=float)
     parser.add_argument("--reference", type=Path, default=BASE_DIR / "assets/death-message.png")
-    parser.add_argument("--data-dir", type=Path, default=APP_DIR / "data")
+    parser.add_argument("--data-dir", type=Path)
     parser.add_argument("--show", action="store_true", help="Abrir com o painel visível")
     args = parser.parse_args()
+    use_default_data = args.data_dir is None
+    args.data_dir = (args.data_dir or default_data_dir()).resolve()
     if not args.check and not ct.windll.shell32.IsUserAnAdmin():
         # RTSS requires elevation on this installation, including for shutdown.
         parameters = sys.argv[1:] if getattr(sys, "frozen", False) else ["-m", "entre_terras", *sys.argv[1:]]
+        if use_default_data:
+            parameters += ["--data-dir", str(args.data_dir)]
         shell = ct.WinDLL("shell32", use_last_error=True)
         shell.ShellExecuteW.argtypes = [wt.HWND, wt.LPCWSTR, wt.LPCWSTR, wt.LPCWSTR, wt.LPCWSTR, ct.c_int]
         shell.ShellExecuteW.restype = ct.c_ssize_t
@@ -43,9 +48,18 @@ def main():
         args.data_dir.mkdir(parents=True, exist_ok=True)
         log = (args.data_dir / "app.log").open("a", encoding="utf-8", buffering=1)
         sys.stdout = sys.stderr = log
+    if not args.check:
+        candidates = [APP_DIR / "data"]
+        if getattr(sys, "frozen", False) and APP_DIR.parent.name == "dist":
+            candidates.append(APP_DIR.parent.parent / "data")
+        # An explicit data directory keeps portable installations independent.
+        if use_default_data or args.data_dir == default_data_dir().resolve():
+            migrate_legacy_data(args.data_dir, candidates)
+    first_run = not (args.data_dir / "state.json").exists()
     store = StateStore(args.data_dir)
     camera = None
     mutex = None
+    running_mutex = None
     kernel = None
     root = None
     rtss = None
@@ -63,6 +77,9 @@ def main():
             if ct.get_last_error() == 183:
                 messagebox.showinfo("Entre Terras", "O contador já está aberto. Use o ícone Entre Terras na bandeja, perto do relógio, para abrir o painel.")
                 return 0
+            running_mutex = kernel.CreateMutexW(None, False, "Local\\EntreTerras-Running")
+            if not running_mutex:
+                raise ct.WinError(ct.get_last_error())
         journey = store.load()
         for key in ("capture", "monitor", "fps", "threshold"):
             value = getattr(args, key)
@@ -84,14 +101,16 @@ def main():
             print(f"OK: {journey.settings['capture']} capture; {frame.shape[1]}x{frame.shape[0]}; score {detector.score(frame):.3f}")
             return 0
         from entre_terras.tracker_ui import ControlPanel
-        from entre_terras.desktop_integration import RTSSLifecycle
+        from entre_terras.desktop_integration import RTSSLifecycle, ensure_rtss_installed
+        if not ensure_rtss_installed():
+            return 1
         rtss = RTSSLifecycle()
         rtss.start()
         ct.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EntreTerras.DeathCounter.Desktop")
         root = tk.Tk()
         root.withdraw()
         app = ControlPanel(root, journey, store, args.reference, args.debug)
-        if args.show:
+        if args.show or first_run:
             app.show_window()
         if args.run_seconds is not None:
             root.after(max(1, round(args.run_seconds * 1000)), app.close)
@@ -111,6 +130,8 @@ def main():
             rtss.close()
         if mutex:
             kernel.CloseHandle(mutex)
+        if running_mutex:
+            kernel.CloseHandle(running_mutex)
         if root:
             try:
                 root.destroy()

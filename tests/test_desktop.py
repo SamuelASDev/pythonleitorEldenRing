@@ -3,10 +3,30 @@ from pathlib import Path
 import queue
 import unittest
 from unittest.mock import Mock, patch
-from entre_terras.desktop_integration import RTSSLifecycle, TrayIcon
+from entre_terras.desktop_integration import RTSSLifecycle, TrayIcon, ensure_rtss_installed
 
 
 class DesktopTests(unittest.TestCase):
+    @patch('entre_terras.desktop_integration.messagebox.askyesno')
+    @patch('entre_terras.desktop_integration.find_rtss', return_value=Path('C:/RTSS/RTSS.exe'))
+    def test_installed_rtss_does_not_show_setup_prompt(self, find, prompt):
+        self.assertTrue(ensure_rtss_installed())
+        prompt.assert_not_called()
+
+    @patch('entre_terras.desktop_integration.webbrowser.open')
+    @patch('entre_terras.desktop_integration.messagebox.askyesno', return_value=True)
+    @patch('entre_terras.desktop_integration.find_rtss', return_value=None)
+    def test_missing_rtss_offers_official_download(self, find, prompt, browser):
+        self.assertFalse(ensure_rtss_installed())
+        browser.assert_called_once_with('https://www.guru3d.com/download/rtss-rivatuner-statistics-server-download/')
+
+    @patch('entre_terras.desktop_integration.webbrowser.open')
+    @patch('entre_terras.desktop_integration.messagebox.askyesno', return_value=False)
+    @patch('entre_terras.desktop_integration.find_rtss', return_value=None)
+    def test_declining_rtss_download_does_not_open_browser(self, find, prompt, browser):
+        self.assertFalse(ensure_rtss_installed())
+        browser.assert_not_called()
+
     @patch('entre_terras.desktop_integration.ct.WinDLL')
     @patch('entre_terras.desktop_integration.psutil.Process')
     @patch('entre_terras.desktop_integration.subprocess.Popen')

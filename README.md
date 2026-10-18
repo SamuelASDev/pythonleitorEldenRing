@@ -27,9 +27,19 @@ O executável não requer Python instalado. O Windows solicita permissão de adm
 
 ## Como executar
 
-### Executável
+### Instalador para Windows
 
-Depois de gerar o aplicativo, abra `dist/EntreTerras/EntreTerras.exe`. Mantenha a pasta `_internal` junto dele. Os dados ficam em `data/` ao lado do executável.
+Baixe o **Setup-x64.exe** em [Releases](https://github.com/SamuelASDev/pythonleitorEldenRing/releases/latest), instale e abra **Entre Terras** pelo menu Iniciar. Python e dependências já estão incluídos. O instalador oferece atalho na área de trabalho e desinstalação pelo Windows.
+
+Instale o RTSS separadamente. Se estiver ausente, o aplicativo oferece a página oficial de download. Abra o contador antes do jogo.
+
+Seu histórico fica em `%LOCALAPPDATA%\EntreTerras` e é preservado durante atualizações e desinstalações. A distribuição ainda não possui assinatura Authenticode: o Windows pode exibir avisos de publicador desconhecido ou SmartScreen.
+
+### Executável portátil
+
+Baixe o ZIP portátil na mesma página, extraia a pasta inteira e abra `EntreTerras.exe`. Mantenha a pasta `_internal` junto dele. O histórico também fica em `%LOCALAPPDATA%\EntreTerras` por padrão.
+
+Veja [RELEASES.md](RELEASES.md) para migração dos dados antigos, geração do instalador, publicação e assinatura digital.
 
 Na pasta do projeto, `iniciar.bat` usa o executável existente quando disponível e mantém os dados em `data/` na raiz. O atalho local **Entre Terras**, quando presente, também usa esse histórico.
 
@@ -43,11 +53,11 @@ python -m venv venv_eldenring
 .\venv_eldenring\Scripts\python.exe -m entre_terras
 ```
 
-Esse comando usa `data/` na raiz do checkout. Para escolher outra pasta, passe `--data-dir caminho`.
+Esse comando usa `%LOCALAPPDATA%\EntreTerras`. Dados antigos em `data/` são migrados quando o destino está vazio. Para escolher outra pasta, passe `--data-dir caminho`. O inicializador local pode passar a pasta antiga explicitamente para manter instalações independentes.
 
 ## Bandeja e encerramento
 
-O aplicativo começa na bandeja, nos ícones perto do relógio. O Windows pode colocá-lo dentro da setinha de ícones ocultos.
+Na primeira abertura, o aplicativo mostra o painel. Nas seguintes, começa na bandeja, nos ícones perto do relógio; os atalhos do instalador abrem o painel. O Windows pode colocar o ícone dentro da setinha de ícones ocultos.
 
 - **Duplo clique** ou **Abrir painel** mostra a janela.
 - **Minimizar** ou **X** esconde a janela, mantendo o contador ativo.
@@ -115,9 +125,9 @@ Se aparecer **Aguardando jogo no RTSS**, confira o perfil do jogo e reinicie o E
 
 | Arquivo | Conteúdo |
 | --- | --- |
-| `data/state.json` | Contagens, sessões, configurações e atalhos |
-| `data/state.json.bak` | Versão anterior válida |
-| `data/app.log` | Erros quando executado sem terminal |
+| `%LOCALAPPDATA%\EntreTerras\state.json` | Contagens, sessões, configurações e atalhos |
+| `%LOCALAPPDATA%\EntreTerras\state.json.bak` | Versão anterior válida |
+| `%LOCALAPPDATA%\EntreTerras\app.log` | Erros quando executado sem terminal |
 
 Use **Abrir pasta dos dados** para localizar seu histórico e fazer uma cópia. Arquivos pessoais, ambientes virtuais e builds são ignorados pelo Git.
 

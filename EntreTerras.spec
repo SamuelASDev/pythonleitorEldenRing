@@ -1,10 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 import psutil
+from pathlib import Path
+import os
 
 # Replacing a live distribution can remove assets before Windows blocks DLLs.
+target = (Path(DISTPATH) / 'EntreTerras' / 'EntreTerras.exe').resolve()
 if any((p.info['name'] or '').casefold() == 'entreterras.exe'
-       for p in psutil.process_iter(['name'])):
+       and (not p.info['exe'] or Path(p.info['exe']).resolve() == target)
+       for p in psutil.process_iter(['name', 'exe'])):
     raise SystemExit('Encerre o Entre Terras pela bandeja antes de gerar o executavel.')
 
 datas = [('entre_terras/assets', 'entre_terras/assets'), ('LICENSE', '.')]
@@ -43,6 +47,7 @@ exe = EXE(
     upx=True,
     console=False,
     uac_admin=True,
+    version=os.environ.get('ENTRE_TERRAS_VERSION_FILE'),
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

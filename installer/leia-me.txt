@@ -1,0 +1,19 @@
+ENTRE TERRAS — Contador de mortes para Elden Ring
+
+Este instalador inclui o aplicativo e suas dependências. Não é necessário
+instalar Python, usar um terminal ou executar arquivos BAT.
+
+Você também precisa instalar o RivaTuner Statistics Server (RTSS).
+Se ele estiver ausente, o aplicativo oferece a página oficial de download.
+O RTSS é distribuído separadamente e não está incluído neste instalador.
+
+Após instalar, abra Entre Terras pelo menu Iniciar antes de abrir o jogo.
+O aplicativo solicita permissão de administrador para controlar o RTSS.
+Ao fechar a janela, ele continua na bandeja, perto do relógio.
+Para sair, use “Encerrar contador e RTSS” no ícone da bandeja.
+
+Seu histórico fica em %LOCALAPPDATA%\EntreTerras e é preservado durante
+atualizações e desinstalações. Use “Abrir pasta dos dados” no painel.
+
+Projeto e suporte:
+https://github.com/SamuelASDev/pythonleitorEldenRing

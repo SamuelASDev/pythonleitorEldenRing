@@ -6,6 +6,8 @@ from pathlib import Path
 import subprocess
 import time
 import winreg
+import webbrowser
+from tkinter import messagebox
 
 import psutil
 from PIL import Image
@@ -27,6 +29,20 @@ def find_rtss():
     for variable in ("ProgramFiles(x86)", "ProgramFiles"):
         candidates.append(Path(os.environ.get(variable, "C:/Program Files (x86)")) / "RivaTuner Statistics Server/RTSS.exe")
     return next((p for p in candidates if p.is_file()), None)
+
+
+def ensure_rtss_installed():
+    if find_rtss() is not None:
+        return True
+    if messagebox.askyesno(
+        "Instalar o RTSS",
+        "O Entre Terras precisa do RivaTuner Statistics Server (RTSS) para "
+        "capturar o jogo e exibir o contador.\n\n"
+        "Quer abrir a página oficial para baixar? Depois de instalar o RTSS, "
+        "abra o Entre Terras novamente, antes do jogo.",
+    ):
+        webbrowser.open("https://www.guru3d.com/download/rtss-rivatuner-statistics-server-download/")
+    return False
 
 
 class RTSSLifecycle:
